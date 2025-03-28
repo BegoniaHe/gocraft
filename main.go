@@ -42,6 +42,12 @@ type Game struct {
 
 	exclusiveMouse bool
 	closed         bool
+
+	// 长按破坏方块相关字段
+	leftMouseDown   bool
+	leftMouseTime   float64
+	targetBlock     *Vec3
+	blockDestroying bool
 }
 
 func initGL(w, h int) *glfw.Window {
@@ -77,6 +83,12 @@ func NewGame(w, h int) (*Game, error) {
 	)
 	game = new(Game)
 	game.item = availableItems[0]
+
+	// 初始化长按破坏相关字段
+	game.leftMouseDown = false
+	game.leftMouseTime = 0
+	game.targetBlock = nil
+	game.blockDestroying = false
 
 	mainthread.Call(func() {
 		win := initGL(w, h)
@@ -137,6 +149,7 @@ func (g *Game) onMouseButtonCallback(win *glfw.Window, button glfw.MouseButton, 
 	head := NearBlock(g.camera.Pos())
 	foot := head.Down()
 	block, prev := g.world.HitTest(g.camera.Pos(), g.camera.Front())
+
 	if button == glfw.MouseButton2 && action == glfw.Press {
 		if prev != nil && *prev != head && *prev != foot {
 			g.world.UpdateBlock(*prev, g.item)
@@ -144,11 +157,19 @@ func (g *Game) onMouseButtonCallback(win *glfw.Window, button glfw.MouseButton, 
 			go ClientUpdateBlock(*prev, g.item)
 		}
 	}
-	if button == glfw.MouseButton1 && action == glfw.Press {
-		if block != nil {
-			g.world.UpdateBlock(*block, 0)
-			g.dirtyBlock(*block)
-			go ClientUpdateBlock(*block, 0)
+
+	// 修改鼠标左键逻辑，实现长按破坏
+	if button == glfw.MouseButton1 {
+		if action == glfw.Press {
+			// 记录按下时间和目标方块
+			g.leftMouseDown = true
+			g.leftMouseTime = glfw.GetTime()
+			g.targetBlock = block
+			g.blockDestroying = false
+		} else if action == glfw.Release {
+			// 释放鼠标时重置状态
+			g.leftMouseDown = false
+			g.targetBlock = nil
 		}
 	}
 }
@@ -267,6 +288,21 @@ func (g *Game) Update() {
 		g.prevtime = now
 		if dt > 0.02 {
 			dt = 0.02
+		}
+
+		// 检查长按破坏方块
+		if g.leftMouseDown && g.targetBlock != nil && !g.blockDestroying {
+			// 如果按下时间超过1秒
+			if now-g.leftMouseTime >= 1.0 {
+				// 再次检查瞄准的是否是同一个方块
+				currentBlock, _ := g.world.HitTest(g.camera.Pos(), g.camera.Front())
+				if currentBlock != nil && *currentBlock == *g.targetBlock {
+					g.world.UpdateBlock(*g.targetBlock, 0)
+					g.dirtyBlock(*g.targetBlock)
+					go ClientUpdateBlock(*g.targetBlock, 0)
+					g.blockDestroying = true
+				}
+			}
 		}
 
 		g.handleKeyInput(dt)

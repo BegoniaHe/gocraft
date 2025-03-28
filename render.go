@@ -163,15 +163,15 @@ func isChunkVisiable(planes []mgl32.Vec4, id Vec3) bool {
 	const m = ChunkWidth
 
 	points := []mgl32.Vec3{
-		mgl32.Vec3{p.X(), p.Y(), p.Z()},
-		mgl32.Vec3{p.X() + m, p.Y(), p.Z()},
-		mgl32.Vec3{p.X() + m, p.Y(), p.Z() + m},
-		mgl32.Vec3{p.X(), p.Y(), p.Z() + m},
+		{p.X(), p.Y(), p.Z()},
+		{p.X() + m, p.Y(), p.Z()},
+		{p.X() + m, p.Y(), p.Z() + m},
+		{p.X(), p.Y(), p.Z() + m},
 
-		mgl32.Vec3{p.X(), p.Y() + 256, p.Z()},
-		mgl32.Vec3{p.X() + m, p.Y() + 256, p.Z()},
-		mgl32.Vec3{p.X() + m, p.Y() + 256, p.Z() + m},
-		mgl32.Vec3{p.X(), p.Y() + 256, p.Z() + m},
+		{p.X(), p.Y() + 256, p.Z()},
+		{p.X() + m, p.Y() + 256, p.Z()},
+		{p.X() + m, p.Y() + 256, p.Z() + m},
+		{p.X(), p.Y() + 256, p.Z() + m},
 	}
 	for _, plane := range planes {
 		var in, out int
@@ -200,12 +200,14 @@ func (r *BlockRender) get3dmat() mgl32.Mat4 {
 	return mat
 }
 
+/*
 func (r *BlockRender) get2dmat() mgl32.Mat4 {
 	n := float32(*renderRadius * ChunkWidth)
 	mat := mgl32.Ortho(-n, n, -n, n, -1, n)
 	mat = mat.Mul4(game.camera.Matrix())
 	return mat
 }
+*/
 
 func (r *BlockRender) sortChunks(chunks []Vec3) []Vec3 {
 	cid := NearBlock(game.camera.Pos()).Chunkid()
